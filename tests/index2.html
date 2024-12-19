@@ -1,0 +1,407 @@
+<html><head><base href="." /><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>ChatGPT网站</title><script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <style>
+    :root {
+      --primary: #10a37f;
+      --bg: #343541;
+      --sidebar: #202123;
+      --text: #fff;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+    }
+    
+    .sidebar {
+      background: var(--sidebar);
+      width: 260px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .new-chat {
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      text-align: left;
+      font-size: 0.875rem;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+    
+    .new-chat:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    
+    .settings {
+      margin-top: auto;
+      padding: 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .api-input {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      color: white;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 48rem;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    
+    .message {
+      display: flex;
+      padding: 1rem;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .user .avatar {
+      background: var(--primary);
+    }
+    
+    .assistant .avatar {
+      background: #19c37d;
+    }
+    
+    .content {
+      flex: 1;
+      line-height: 1.5;
+    }
+    
+    .input-area {
+      position: relative;
+      padding: 1rem;
+    }
+    
+    .input-box {
+      width: 100%;
+      min-height: 3rem;
+      padding: 0.75rem;
+      padding-right: 3rem;
+      background: rgba(64,65,79,1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 0.375rem;
+      color: white;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    .send-btn {
+      position: absolute;
+      right: 1.5rem;
+      bottom: 1.75rem;
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* 添加菜单按钮样式 */
+    .menu-btn {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 100;
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      .menu-btn {
+        display: block;
+      }
+      
+      .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        z-index: 99;
+        transition: 0.3s;
+      }
+      
+      .sidebar.active {
+        left: 0;
+      }
+      
+      .main {
+        padding: 0.5rem;
+        max-width: 100%;
+      }
+      
+      .message {
+        padding: 0.75rem;
+      }
+      
+      .input-area {
+        padding: 0.5rem;
+      }
+      
+      .input-box {
+        padding: 0.5rem;
+        min-height: 2.5rem;
+      }
+      
+      .send-btn {
+        right: 1rem;
+        bottom: 1.25rem;
+      }
+    }
+    </style>
+    </head>
+    <body>
+    <div class="sidebar">
+      <button class="new-chat">
+        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        新建聊天
+      </button>
+      <div class="settings">
+        <select class="api-input" id="apiSelect">
+          <option value="chatgpt">ChatGPT</option>
+        </select>
+        <input style="display: none;" type="password" class="api-input" id="apiKey" placeholder="输入API Key" value="sk-wFcRxY5NBr12HTNutZZx7bzJYRLL7Y6ElkdIwCZOhzxeDEPE">
+        <input style="display: none;" type="text" class="api-input" id="apiProxy" placeholder="输入API代理地址" value="https://api.chatanywhere.tech">
+      </div>
+    </div>
+    
+    <div class="main">
+      <div class="chat" id="chatContainer"></div>
+      <div class="input-area">
+        <textarea class="input-box" id="userInput" rows="1" placeholder="输入消息..."></textarea>
+        <button class="send-btn" id="sendBtn">
+          <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+    
+    <script>
+        const apiSelect = document.getElementById('apiSelect');
+        const apiKey = document.getElementById('apiKey');
+        const apiProxy = document.getElementById('apiProxy');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatContainer = document.getElementById('chatContainer');
+
+        // 存储聊天历史
+        let chatHistory = [];
+
+        // 发送消息
+        async function sendMessage() {
+          if (!apiKey.value || !userInput.value) {
+            alert('请填写 API Key 和消息内容');
+            return;
+          }
+
+          // 添加用户消息到界面
+          addMessage('user', userInput.value);
+          const message = userInput.value;
+          userInput.value = '';
+          sendBtn.disabled = true; // 发送过程中禁用发送按钮
+
+          try {
+            const response = await (apiSelect.value === 'chatgpt' ? 
+              callChatGPT(message) : callGemini(message));
+            await addMessage('assistant', response);
+          } catch (err) {
+            await addMessage('assistant', '错误: ' + err.message);
+          }
+          
+          sendBtn.disabled = false; // 恢复发送按钮
+        }
+
+        // 添加消息到界面
+        async function addMessage(role, content) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = `message ${role}`;
+          messageDiv.innerHTML = `
+            <div class="avatar">${role === 'user' ? '用' : 'AI'}</div>
+            <div class="content"></div>
+          `;
+          chatContainer.appendChild(messageDiv);
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          chatHistory.push({role, content});
+
+          // 如果是AI回复，使用打字机效果
+          if (role === 'assistant') {
+            const contentDiv = messageDiv.querySelector('.content');
+            await typeWriter(content, contentDiv);
+          } else {
+            // 如果是用户消息，直接显示
+            messageDiv.querySelector('.content').innerHTML = marked.parse(content);
+          }
+        }
+
+        // 添加打字机效果函数
+        async function typeWriter(text, element, speed = 50) {
+          const parsedContent = marked.parse(text);
+          element.innerHTML = ''; // 清空内容
+          
+          // 创建临时div来去除HTML标签
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = parsedContent;
+          const textContent = tempDiv.textContent;
+          
+          let currentText = '';
+          for (let i = 0; i < textContent.length; i++) {
+            currentText += textContent[i];
+            // 使用marked重新解析，保持markdown格式
+            element.innerHTML = marked.parse(currentText);
+            await new Promise(resolve => setTimeout(resolve, speed));
+          }
+          
+          // 最后设置完整的带格式文本
+          element.innerHTML = parsedContent;
+        }
+
+        // 调用 ChatGPT API
+        async function callChatGPT(message) {
+          const baseUrl = apiProxy.value || 'https://api.openai.com/v1';
+          const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.value}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{role: 'user', content: message}],
+              temperature: 0.7
+            })
+          });
+
+          const data = await res.json();
+          if (data.error) {
+            throw new Error(data.error.message);
+          }
+
+          return data.choices[0].message.content;
+        }
+
+        // 调用 Gemini API
+        async function callGemini(message) {
+          const baseUrl = apiProxy.value || 'https://generativelanguage.googleapis.com/v1beta';
+          const res = await fetch(`${baseUrl}/models/gemini-pro:generateContent`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.value}`
+            },
+            body: JSON.stringify({
+              contents: [{parts: [{text: message}]}]
+            })
+          });
+
+          const data = await res.json();
+          if (data.error) {
+            throw new Error(data.error.message);
+          }
+
+          return data.candidates[0].content.parts[0].text;
+        }
+
+        // 事件监听器
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+
+        // 新建聊天按钮
+        document.querySelector('.new-chat').addEventListener('click', () => {
+          // 如果有聊天记录,显示确认提示
+          if (chatHistory.length > 0) {
+            if (!confirm('确定要开始新的对话吗?当前对话将被清空。')) {
+              return;
+            }
+          }
+          
+          // 清空聊天界面和历史记录
+          chatContainer.innerHTML = '';
+          chatHistory = [];
+          
+          // 可以添加欢迎消息
+          addMessage('assistant', '你好!我是AI助手,请问有什么可以帮你?');
+        });
+
+        // 添加菜单切换功能
+        const menuBtn = document.querySelector('.menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+
+        menuBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('active');
+        });
+
+        // 点击主内容区域时关闭侧边栏
+        document.querySelector('.main').addEventListener('click', () => {
+          sidebar.classList.remove('active');
+        });
+    </script>
+    </body></html>

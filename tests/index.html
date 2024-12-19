@@ -1,0 +1,230 @@
+<html><head><base href="https://api-docs.com/" />
+    <title>AI API 调用演示 - ChatGPT & Gemini</title>
+    <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(45deg, #00ffaa, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .api-tester {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #00ffaa;
+    }
+    
+    .input-group select,
+    .input-group input,
+    .input-group textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 1rem;
+    }
+    
+    .input-group textarea {
+      height: 150px;
+      resize: vertical;
+    }
+    
+    .button {
+      background: linear-gradient(45deg, #00ffaa, #00ff88);
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      color: #1a1a2e;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    
+    .response-area {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      min-height: 200px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #00ffaa;
+      display: none;
+    }
+    
+    .error {
+      color: #ff4444;
+      margin-top: 1rem;
+      display: none;
+    }
+    </style>
+    </head>
+    <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI API 在线调用测试</h1>
+        <p>输入您的 API 密钥和提示词，体验 AI 模型的能力</p>
+      </div>
+      
+      <div class="api-tester">
+        <div class="input-group">
+          <label>选择 API</label>
+          <select id="apiSelect">
+            <option value="chatgpt">ChatGPT API</option>
+            <option value="gemini">Gemini API</option>
+          </select>
+        </div>
+        
+        <div class="input-group">
+          <label>API 代理地址（可选）</label>
+          <input type="text" id="proxyUrl" placeholder="输入代理服务器地址，例如: https://your-proxy.com/v1">
+        </div>
+        
+        <div class="input-group">
+          <label>API 密钥</label>
+          <input type="password" id="apiKey" placeholder="输入您的 API 密钥">
+        </div>
+        
+        <div class="input-group">
+          <label>提示词</label>
+          <textarea id="prompt" placeholder="输入您想问的问题..."></textarea>
+        </div>
+        
+        <button class="button" id="submitBtn">发送请求</button>
+        
+        <div class="loading" id="loading">处理中...</div>
+        <div class="error" id="error"></div>
+        
+        <div class="response-area" id="response"></div>
+      </div>
+    </div>
+    
+    <script>
+    const apiSelect = document.getElementById('apiSelect');
+    const apiKey = document.getElementById('apiKey');
+    const proxyUrl = document.getElementById('proxyUrl');
+    const prompt = document.getElementById('prompt');
+    const submitBtn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const response = document.getElementById('response');
+    
+    submitBtn.addEventListener('click', async () => {
+      if (!apiKey.value || !prompt.value) {
+        showError('请填写 API 密钥和提示词');
+        return;
+      }
+      
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      response.textContent = '';
+      
+      try {
+        if (apiSelect.value === 'chatgpt') {
+          await callChatGPT();
+        } else {
+          await callGemini();
+        }
+      } catch (err) {
+        showError('请求失败: ' + err.message);
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+    
+    async function callChatGPT() {
+      const baseUrl = proxyUrl.value || 'https://api.openai.com/v1';
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.value}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{role: 'user', content: prompt.value}],
+          temperature: 0.7
+        })
+      });
+      
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      response.textContent = data.choices[0].message.content;
+    }
+    
+    async function callGemini() {
+      const baseUrl = proxyUrl.value || 'https://generativelanguage.googleapis.com/v1beta';
+      const res = await fetch(`${baseUrl}/models/gemini-pro:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.value}`
+        },
+        body: JSON.stringify({
+          contents: [{parts: [{text: prompt.value}]}]
+        })
+      });
+      
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      response.textContent = data.candidates[0].content.parts[0].text;
+    }
+    
+    function showError(message) {
+      error.textContent = message;
+      error.style.display = 'block';
+    }
+    </script>
+    </body></html>
